@@ -1,24 +1,53 @@
-import React from 'react';
-import logo from './logo.svg';
+import {useState, useRef, useCallback} from 'react';
 import './App.css';
+import { useSearchAPI } from "./hooks/useSearchAPI";
 
-function App() {
+const App =()=> {
+  const [pageNumber,setPageNumber] = useState(1);
+  const {photos,loading,photoLimitReached} = useSearchAPI(pageNumber);
+
+  const observer = useRef<IntersectionObserver>();
+  
+  const lastPhotoRef = useCallback(element =>{
+    if(loading) return;
+    if(observer.current){
+      observer.current.disconnect();
+    }
+    observer.current = new IntersectionObserver(entries=>{ 
+      if(entries[0].isIntersecting && !photoLimitReached){
+        setPageNumber(prevPageNumber=>prevPageNumber+1);
+      }
+    })
+    if(element) observer.current.observe(element);
+  },[loading,photoLimitReached])
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <h1> Welcome to Infinite Scrolling App Using TypeScript</h1>
+      <div className='photos'>
+        {photos.map((photo,index)=>{
+          if(photos.length === index+1){
+            return(
+            <div ref ={lastPhotoRef} className='card' key={index}>
+            <div className='title'>
+            Title: {photo.title}
+            </div>
+            <div className='image'>
+            <span>Image:</span> <img src={photo.thumbnailUrl} alt={photo.url}/>
+            </div>
+        </div>);
+          }
+          return(<div className='card' key={index}>
+            <div className='title'>
+            Title: {photo.title}
+            </div>
+            <div className='image'>
+            <span>Image-{index+1}:</span> <img src={photo.thumbnailUrl} alt={photo.url}/>
+            </div>
+        </div>);
+        })}
+      </div>
+      {loading && <h5>Loading...</h5>}
     </div>
   );
 }
